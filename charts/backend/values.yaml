@@ -1,0 +1,18 @@
+replicaCount: 1
+
+image:
+  repository: tilt-go-backend
+  tag: dev
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+database:
+  host: postgres
+  port: 5432
+  name: tilt_demo
+  user: devuser
+  secretName: postgres-secret

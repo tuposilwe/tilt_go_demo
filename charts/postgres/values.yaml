@@ -1,0 +1,14 @@
+replicaCount: 1
+
+image:
+  repository: postgres
+  tag: 16-alpine
+  pullPolicy: IfNotPresent
+
+database:
+  name: tilt_demo
+  user: devuser
+  password: devpassword
+
+service:
+  port: 5432
