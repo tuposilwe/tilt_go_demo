@@ -15,7 +15,7 @@ type Response struct {
 func main() {
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
         response := Response{
-            Message: "Hello from Go running on Kubernetes!",
+            Message: "Tilt Live Update Go running on Kubernetes!",
             Version: "1.0.0",
         }
 

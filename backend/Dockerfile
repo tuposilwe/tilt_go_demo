@@ -1,17 +1,14 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.24-alpine
 
 WORKDIR /app
 
 COPY go.mod ./
-COPY main.go ./
 
-RUN CGO_ENABLED=0 go build -o server main.go
+RUN go mod download
 
-FROM alpine:3.21
+COPY . .
 
-WORKDIR /app
-
-COPY --from=builder /app/server .
+RUN go build -o server .
 
 EXPOSE 8080
 
