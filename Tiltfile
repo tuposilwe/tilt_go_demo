@@ -76,6 +76,8 @@ docker_build_with_restart(
     entrypoint='/app/server',
     live_update=[
         sync('./backend/main.go', '/app/main.go'),
+        sync('./backend/db.go', '/app/db.go'),
+        sync('./backend/api.go', '/app/api.go'),
         run('cd /app && go build -o /app/server .'),
     ],
 )

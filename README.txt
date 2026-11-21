@@ -123,8 +123,70 @@ with:
   curl http://localhost:8080/
 
 Keep Tilt running in the terminal while developing. Edit backend/main.go and
-Tilt will sync the file into the container, rebuild the Go server, and restart
-the process.
+Tilt will sync Go source changes into the container, rebuild the server, and
+restart the process. On startup, the backend creates the restaurant table and
+seeds 100 demo restaurants if they have not already been seeded.
+
+
+RESTAURANT API
+==============
+
+All API responses use JSON. The service validates request bodies and returns
+structured errors. The health endpoint checks database connectivity:
+
+  GET http://localhost:8080/healthz
+
+List restaurants, with optional pagination and filters:
+
+  GET /api/restaurants?limit=20&offset=0
+  GET /api/restaurants?city=Portland
+  GET /api/restaurants?cuisine=Italian
+  GET /api/restaurants?q=spoon
+
+The list response contains a data array and pagination metadata. The default
+page size is 20 and the maximum is 100.
+
+Retrieve one restaurant:
+
+  GET /api/restaurants/{id}
+
+Create a restaurant (price_level defaults to 2; rating defaults to 0):
+
+  curl -X POST http://localhost:8080/api/restaurants \
+    -H 'Content-Type: application/json' \
+    -d '{
+      "name": "Example Bistro",
+      "cuisine": "French",
+      "description": "A neighborhood bistro.",
+      "address": "10 Main Street",
+      "city": "Portland",
+      "state": "Oregon",
+      "postal_code": "97201",
+      "country": "United States",
+      "phone": "+1-555-555-0100",
+      "email": "hello@example.com",
+      "website": "https://example.com",
+      "price_level": 2,
+      "rating": 4.5
+    }'
+
+Update selected fields with PATCH:
+
+  curl -X PATCH http://localhost:8080/api/restaurants/1 \
+    -H 'Content-Type: application/json' \
+    -d '{"rating": 4.8, "description": "Updated description."}'
+
+Delete a restaurant:
+
+  curl -i -X DELETE http://localhost:8080/api/restaurants/1
+
+Restaurant fields are name, cuisine, description, address, city, state,
+postal_code, country, phone, email, website, price_level (1-4), and rating
+(0-5, up to two decimal places). Name, cuisine, address, city, and country are
+required on creation.
+Invalid input returns HTTP 400; missing IDs return HTTP 404. Creating returns
+HTTP 201, successful reads/updates return HTTP 200, and successful deletes
+return HTTP 204.
 
 Stop Tilt with Ctrl-C, or from another terminal run:
 
