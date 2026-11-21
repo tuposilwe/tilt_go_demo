@@ -1,0 +1,50 @@
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+### Check API and database health
+GET {{baseUrl}}/healthz
+
+### List restaurants
+GET {{baseUrl}}/api/restaurants?limit=20&offset=0
+
+### Filter by city and cuisine
+GET {{baseUrl}}/api/restaurants?city=Portland&cuisine=Italian
+
+### Search restaurant names and descriptions
+GET {{baseUrl}}/api/restaurants?q=spoon
+
+### Create a restaurant
+# @name createRestaurant
+POST {{baseUrl}}/api/restaurants
+Content-Type: {{contentType}}
+
+{
+  "name": "REST Client Bistro",
+  "cuisine": "French",
+  "description": "A neighborhood bistro created from api.rest.",
+  "address": "10 Main Street",
+  "city": "Portland",
+  "state": "Oregon",
+  "postal_code": "97201",
+  "country": "United States",
+  "phone": "+1-555-555-0100",
+  "email": "hello@rest-client-bistro.example",
+  "website": "https://example.com",
+  "price_level": 2,
+  "rating": 4.5
+}
+
+### Get the restaurant created above
+GET {{baseUrl}}/api/restaurants/{{createRestaurant.response.body.$.data.id}}
+
+### Update the restaurant created above
+PATCH {{baseUrl}}/api/restaurants/{{createRestaurant.response.body.$.data.id}}
+Content-Type: {{contentType}}
+
+{
+  "rating": 4.8,
+  "description": "Updated using the REST Client."
+}
+
+### Delete the restaurant created above
+DELETE {{baseUrl}}/api/restaurants/{{createRestaurant.response.body.$.data.id}}
