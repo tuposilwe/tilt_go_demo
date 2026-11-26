@@ -7,33 +7,40 @@
     image_tag: "latest"
     release_name: "tilt-go-demo"
     kube_namespace: "tilt-go-demo"
-    postgres_chart_path: "{{ playbook_dir }}/../charts/postgres"
-    backend_chart_path: "{{ playbook_dir }}/../charts/backend"
+    remote_charts_path: "/tmp/tilt-go-demo-charts"
 
   tasks:
-    - name: Ensure target namespace exists
-      kubernetes.core.k8s:
-        name: "{{ kube_namespace }}"
-        api_version: v1
-        kind: Namespace
-        state: present
+    - name: Copy Helm charts to the deployment host
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../charts/"
+        dest: "{{ remote_charts_path }}/"
 
     - name: Install or upgrade PostgreSQL
-      kubernetes.core.helm:
-        name: postgres
-        chart_ref: "{{ postgres_chart_path }}"
-        release_namespace: "{{ kube_namespace }}"
-        create_namespace: true
-        wait: true
+      ansible.builtin.command:
+        argv:
+          - helm
+          - upgrade
+          - --install
+          - postgres
+          - "{{ remote_charts_path }}/postgres"
+          - --namespace
+          - "{{ kube_namespace }}"
+          - --create-namespace
+          - --wait
 
     - name: Upgrade or install Helm release
-      kubernetes.core.helm:
-        name: "{{ release_name }}"
-        chart_ref: "{{ backend_chart_path }}"
-        release_namespace: "{{ kube_namespace }}"
-        create_namespace: true
-        wait: true
-        values:
-          image:
-            repository: "{{ image_name }}"
-            tag: "{{ image_tag }}"
+      ansible.builtin.command:
+        argv:
+          - helm
+          - upgrade
+          - --install
+          - "{{ release_name }}"
+          - "{{ remote_charts_path }}/backend"
+          - --namespace
+          - "{{ kube_namespace }}"
+          - --create-namespace
+          - --wait
+          - --set-string
+          - "image.repository={{ image_name }}"
+          - --set-string
+          - "image.tag={{ image_tag }}"
