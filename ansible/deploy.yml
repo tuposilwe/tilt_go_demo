@@ -15,10 +15,36 @@
         src: "{{ playbook_dir }}/../charts/"
         dest: "{{ remote_charts_path }}/"
 
+    - name: Locate Helm
+      ansible.builtin.shell: |
+        if command -v helm >/dev/null 2>&1; then
+          command -v helm
+        elif [ -x /snap/bin/helm ]; then
+          printf '%s\n' /snap/bin/helm
+        else
+          exit 1
+        fi
+      register: helm_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install Helm with Snap when missing
+      ansible.builtin.command:
+        argv:
+          - snap
+          - install
+          - helm
+          - --classic
+      when: helm_check.rc != 0
+
+    - name: Set Helm executable path
+      ansible.builtin.set_fact:
+        helm_bin: "{{ helm_check.stdout if helm_check.rc == 0 else '/snap/bin/helm' }}"
+
     - name: Install or upgrade PostgreSQL
       ansible.builtin.command:
         argv:
-          - helm
+          - "{{ helm_bin }}"
           - upgrade
           - --install
           - postgres
@@ -31,7 +57,7 @@
     - name: Upgrade or install Helm release
       ansible.builtin.command:
         argv:
-          - helm
+          - "{{ helm_bin }}"
           - upgrade
           - --install
           - "{{ release_name }}"
