@@ -55,9 +55,9 @@ pipeline {
                 stage('Docker Build') {
                     steps {
                         sh """
-                            docker build -f Dockerfile \
+                            docker build -f backend/Dockerfile \
                               -t ${IMAGE_NAME}:${IMAGE_TAG} \
-                              -t ${IMAGE_NAME}:latest .
+                              -t ${IMAGE_NAME}:latest backend
                         """
                     }
                 }
