@@ -42,10 +42,12 @@ pipeline {
 
                 stage('Test Go') {
                     steps {
-                        sh '''
-                            go vet ./...
-                            go test -race -v ./...
-                        '''
+                        dir('backend') {
+                            sh '''
+                                go vet ./...
+                                go test -race -v ./...
+                            '''
+                        }
                     }
                 }
 
