@@ -6,22 +6,31 @@
     image_name: "rudigermkondya/tilt_go_demo"
     image_tag: "latest"
     release_name: "tilt-go-demo"
-    namespace: "tilt-go-demo"
-    chart_path: "{{ playbook_dir }}/../helm/tilt-go-demo"
+    kube_namespace: "tilt-go-demo"
+    postgres_chart_path: "{{ playbook_dir }}/../charts/postgres"
+    backend_chart_path: "{{ playbook_dir }}/../charts/backend"
 
   tasks:
     - name: Ensure target namespace exists
       kubernetes.core.k8s:
-        name: "{{ namespace }}"
+        name: "{{ kube_namespace }}"
         api_version: v1
         kind: Namespace
         state: present
 
+    - name: Install or upgrade PostgreSQL
+      kubernetes.core.helm:
+        name: postgres
+        chart_ref: "{{ postgres_chart_path }}"
+        release_namespace: "{{ kube_namespace }}"
+        create_namespace: true
+        wait: true
+
     - name: Upgrade or install Helm release
       kubernetes.core.helm:
         name: "{{ release_name }}"
-        chart_ref: "{{ chart_path }}"
-        release_namespace: "{{ namespace }}"
+        chart_ref: "{{ backend_chart_path }}"
+        release_namespace: "{{ kube_namespace }}"
         create_namespace: true
         wait: true
         values:

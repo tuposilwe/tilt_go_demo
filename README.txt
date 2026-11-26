@@ -127,6 +127,16 @@ Tilt will sync Go source changes into the container, rebuild the server, and
 restart the process. On startup, the backend creates the restaurant table and
 seeds 100 demo restaurants if they have not already been seeded.
 
+For the Kubernetes deployment, the backend is exposed on NodePort 30080.
+After deploying, allow inbound TCP port 30080 in the server and cloud firewall,
+then access the API at:
+
+  http://<server-public-ip>:30080/api/restaurants
+
+The API currently has no authentication. Public exposure also makes its
+create, update, and delete endpoints accessible; do not expose it publicly
+unless that is intended.
+
 
 RESTAURANT API
 ==============

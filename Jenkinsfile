@@ -88,7 +88,7 @@ pipeline {
                                       -e image_name=${IMAGE_NAME} \
                                       -e image_tag=${IMAGE_TAG} \
                                       -e release_name=${HELM_RELEASE} \
-                                      -e namespace=${KUBE_NAMESPACE}
+                                      -e kube_namespace=${KUBE_NAMESPACE}
                                 """
                             }
                         }
