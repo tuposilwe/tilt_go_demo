@@ -22,24 +22,38 @@
         elif [ -x /snap/bin/helm ]; then
           printf '%s\n' /snap/bin/helm
         else
-          exit 1
+          printf '%s\n' __missing__
         fi
-      register: helm_check
+      register: helm_path_check
       changed_when: false
-      failed_when: false
 
-    - name: Install Helm with Snap when missing
-      ansible.builtin.command:
-        argv:
-          - snap
-          - install
-          - helm
-          - --classic
-      when: helm_check.rc != 0
+    - name: Download verified Helm release when missing
+      ansible.builtin.get_url:
+        url: https://get.helm.sh/helm-v3.17.3-linux-amd64.tar.gz
+        dest: /tmp/helm-v3.17.3-linux-amd64.tar.gz
+        checksum: sha256:ee88b3c851ae6466a3de507f7be73fe94d54cbf2987cbaa3d1a3832ea331f2cd
+        mode: "0644"
+      when: helm_path_check.stdout == "__missing__"
+
+    - name: Extract Helm release when missing
+      ansible.builtin.unarchive:
+        src: /tmp/helm-v3.17.3-linux-amd64.tar.gz
+        dest: /tmp
+        remote_src: true
+        creates: /tmp/linux-amd64/helm
+      when: helm_path_check.stdout == "__missing__"
+
+    - name: Install Helm binary when missing
+      ansible.builtin.copy:
+        src: /tmp/linux-amd64/helm
+        dest: /usr/local/bin/helm
+        remote_src: true
+        mode: "0755"
+      when: helm_path_check.stdout == "__missing__"
 
     - name: Set Helm executable path
       ansible.builtin.set_fact:
-        helm_bin: "{{ helm_check.stdout if helm_check.rc == 0 else '/snap/bin/helm' }}"
+        helm_bin: "{{ '/usr/local/bin/helm' if helm_path_check.stdout == '__missing__' else helm_path_check.stdout }}"
 
     - name: Install or upgrade PostgreSQL
       ansible.builtin.command:
