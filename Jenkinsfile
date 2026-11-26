@@ -42,12 +42,13 @@ pipeline {
 
                 stage('Test Go') {
                     steps {
-                        dir('backend') {
-                            sh '''
-                                go vet ./...
-                                go test -race -v ./...
-                            '''
-                        }
+                        sh '''
+                            docker run --rm \
+                              -v "$WORKSPACE/backend:/app" \
+                              -w /app \
+                              golang:1.24 \
+                              sh -c 'go vet ./... && go test -race -v ./...'
+                        '''
                     }
                 }
 
