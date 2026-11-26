@@ -9,7 +9,7 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME     = 'tuposilwe/tilt_go_demo'
+        IMAGE_NAME     = 'rudigermkondya/tilt_go_demo'
         HELM_RELEASE   = 'tilt-go-demo'
         KUBE_NAMESPACE = 'tilt-go-demo'
     }

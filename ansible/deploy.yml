@@ -3,7 +3,7 @@
   hosts: app
   become: false
   vars:
-    image_name: "tuposilwe/tilt_go_demo"
+    image_name: "rudigermkondya/tilt_go_demo"
     image_tag: "latest"
     release_name: "tilt-go-demo"
     namespace: "tilt-go-demo"
