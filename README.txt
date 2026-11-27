@@ -127,11 +127,15 @@ Tilt will sync Go source changes into the container, rebuild the server, and
 restart the process. On startup, the backend creates the restaurant table and
 seeds 100 demo restaurants if they have not already been seeded.
 
-For the Kubernetes deployment, the backend is exposed on NodePort 30080.
-After deploying, allow inbound TCP port 30080 in the server and cloud firewall,
-then access the API at:
+The Jenkins deployment installs K3s on the server when it is missing, then
+deploys PostgreSQL and the backend with Helm. The backend is exposed on
+NodePort 30080. Allow inbound TCP port 30080 in the cloud firewall, then access
+the API at:
 
   http://<server-public-ip>:30080/api/restaurants
+
+On hosts still using cgroup v1, deployment installs the Ubuntu 20.04 HWE
+kernel, enables cgroup v2, and reboots once before installing K3s.
 
 The API currently has no authentication. Public exposure also makes its
 create, update, and delete endpoints accessible; do not expose it publicly

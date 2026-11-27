@@ -8,8 +8,114 @@
     release_name: "tilt-go-demo"
     kube_namespace: "tilt-go-demo"
     remote_charts_path: "/tmp/tilt-go-demo-charts"
+    k3s_install_script: "/tmp/install-k3s.sh"
+    cgroup_v2_kernel_package: linux-generic-hwe-20.04
 
   tasks:
+    - name: Check the active cgroup version
+      ansible.builtin.command:
+        argv:
+          - stat
+          - -fc
+          - "%T"
+          - /sys/fs/cgroup
+      register: cgroup_version
+      changed_when: false
+
+    - name: Install a cgroup v2 capable HWE kernel
+      ansible.builtin.raw: |
+        apt-get update
+        DEBIAN_FRONTEND=noninteractive apt-get install -y {{ cgroup_v2_kernel_package }}
+      when: cgroup_version.stdout != "cgroup2fs"
+      register: hwe_kernel_install
+
+    - name: Enable the unified cgroup v2 hierarchy in GRUB
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub
+        regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=")(?![^"]*systemd\.unified_cgroup_hierarchy=1)([^"]*)(")$'
+        line: '\1\2 systemd.unified_cgroup_hierarchy=1\3'
+        backrefs: true
+      when: cgroup_version.stdout != "cgroup2fs"
+      register: grub_cgroup_config
+
+    - name: Update GRUB configuration
+      ansible.builtin.command:
+        argv:
+          - update-grub
+      when:
+        - cgroup_version.stdout != "cgroup2fs"
+        - grub_cgroup_config.changed or hwe_kernel_install.changed
+
+    - name: Reboot to activate the HWE kernel and cgroup v2
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+        connect_timeout: 10
+        post_reboot_delay: 10
+      when:
+        - cgroup_version.stdout != "cgroup2fs"
+        - grub_cgroup_config.changed or hwe_kernel_install.changed
+
+    - name: Verify cgroup v2 is active
+      ansible.builtin.command:
+        argv:
+          - stat
+          - -fc
+          - "%T"
+          - /sys/fs/cgroup
+      register: active_cgroup_version
+      changed_when: false
+      failed_when: active_cgroup_version.stdout != "cgroup2fs"
+
+    - name: Check whether K3s is installed
+      ansible.builtin.stat:
+        path: /usr/local/bin/k3s
+      register: k3s_binary
+
+    - name: Download the official K3s installer
+      ansible.builtin.get_url:
+        url: https://get.k3s.io
+        dest: "{{ k3s_install_script }}"
+        mode: "0700"
+      when: not k3s_binary.stat.exists
+
+    - name: Install K3s server
+      ansible.builtin.command:
+        argv:
+          - sh
+          - "{{ k3s_install_script }}"
+      environment:
+        INSTALL_K3S_EXEC: server
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Ensure K3s is enabled and running
+      ansible.builtin.systemd_service:
+        name: k3s
+        enabled: true
+        state: started
+
+    - name: Wait for the Kubernetes API server
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6443
+        delay: 5
+        timeout: 180
+
+    - name: Wait for the K3s node to become ready
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/kubectl
+          - get
+          - nodes
+          - --no-headers
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: k3s_nodes
+      changed_when: false
+      retries: 30
+      delay: 5
+      until: k3s_nodes.rc == 0 and ' Ready ' in (' ' + k3s_nodes.stdout + ' ')
+
     - name: Copy Helm charts to the deployment host
       ansible.builtin.copy:
         src: "{{ playbook_dir }}/../charts/"
@@ -67,6 +173,8 @@
           - "{{ kube_namespace }}"
           - --create-namespace
           - --wait
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
     - name: Upgrade or install Helm release
       ansible.builtin.command:
@@ -84,3 +192,5 @@
           - "image.repository={{ image_name }}"
           - --set-string
           - "image.tag={{ image_tag }}"
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
